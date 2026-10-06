@@ -1,0 +1,81 @@
+{
+  "title": "Cartoon Story",
+  "original_story": "A boy goes to the park with his dog. He meets his friend there. They play football together and then go home in a red car.",
+  "total_scenes": 3,
+  "scenes": [
+    {
+      "scene_number": 1,
+      "background": "Park",
+      "characters": [
+        {
+          "asset": "boy",
+          "action": "walking",
+          "position": "left"
+        }
+      ],
+      "animals": [
+        {
+          "asset": "dog",
+          "action": "walking",
+          "position": "center"
+        }
+      ],
+      "objects": [],
+      "dialogue": [
+        {
+          "speaker": "Boy",
+          "text": "A boy goes to the park with his dog"
+        }
+      ]
+    },
+    {
+      "scene_number": 2,
+      "background": "Park",
+      "characters": [
+        {
+          "asset": "friend",
+          "action": "walking",
+          "position": "left"
+        }
+      ],
+      "animals": [],
+      "objects": [],
+      "dialogue": [
+        {
+          "speaker": "Friend",
+          "text": "He meets his friend there"
+        }
+      ]
+    },
+    {
+      "scene_number": 3,
+      "background": "House",
+      "characters": [
+        {
+          "asset": "boy",
+          "action": "walking",
+          "position": "left"
+        }
+      ],
+      "animals": [],
+      "objects": [
+        {
+          "asset": "red-car",
+          "action": "present",
+          "position": "center"
+        },
+        {
+          "asset": "football",
+          "action": "present",
+          "position": "center"
+        }
+      ],
+      "dialogue": [
+        {
+          "speaker": "Boy",
+          "text": "They play football together and then go home in a red car"
+        }
+      ]
+    }
+  ]
+}

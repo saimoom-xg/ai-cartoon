@@ -1,0 +1,119 @@
+[
+  {
+    "id": "boy",
+    "name": "Boy",
+    "type": "character",
+    "category": "people",
+    "image_path": "assets/characters/boy.png",
+    "description": "A young boy character used in everyday story scenes.",
+    "tags": ["boy", "child", "male", "kid"]
+  },
+  {
+    "id": "girl",
+    "name": "Girl",
+    "type": "character",
+    "category": "people",
+    "image_path": "assets/characters/girl.png",
+    "description": "A young girl character for peer scenes and family moments.",
+    "tags": ["girl", "child", "female", "kid"]
+  },
+  {
+    "id": "friend",
+    "name": "Friend",
+    "type": "character",
+    "category": "people",
+    "image_path": "assets/characters/friend.png",
+    "description": "A casual friend character that fits everyday social scenes.",
+    "tags": ["friend", "buddy", "playmate", "peer"]
+  },
+  {
+    "id": "old-man",
+    "name": "Old Man",
+    "type": "character",
+    "category": "people",
+    "image_path": "assets/characters/old-man.png",
+    "description": "An older male character suitable for warm or guiding role scenes.",
+    "tags": ["old man", "older man", "grandfather", "elder"]
+  },
+  {
+    "id": "dog",
+    "name": "Dog",
+    "type": "animal",
+    "category": "pets",
+    "image_path": "assets/animals/dog.png",
+    "description": "Dog companion asset for walking, playing, and friendship scenes.",
+    "tags": ["dog", "puppy", "pet", "animal"]
+  },
+  {
+    "id": "cat",
+    "name": "Cat",
+    "type": "animal",
+    "category": "pets",
+    "image_path": "assets/animals/cat.png",
+    "description": "Cat asset for calm or playful scenes.",
+    "tags": ["cat", "kitten", "pet", "animal"]
+  },
+  {
+    "id": "red-car",
+    "name": "Red Car",
+    "type": "vehicle",
+    "category": "transport",
+    "image_path": "assets/vehicles/red-car.png",
+    "description": "A small red car used for driving and travel scenes.",
+    "tags": ["red car", "car", "vehicle", "driving", "travel"]
+  },
+  {
+    "id": "football",
+    "name": "Football",
+    "type": "object",
+    "category": "sports",
+    "image_path": "assets/objects/football.png",
+    "description": "A football used during play scenes.",
+    "tags": ["football", "ball", "soccer", "play"]
+  },
+  {
+    "id": "park",
+    "name": "Park",
+    "type": "background",
+    "category": "location",
+    "image_path": "assets/backgrounds/park.png",
+    "description": "Green park background with trees and open space.",
+    "tags": ["park", "garden", "playground", "outside"]
+  },
+  {
+    "id": "house",
+    "name": "House",
+    "type": "building",
+    "category": "location",
+    "image_path": "assets/buildings/house.png",
+    "description": "Residential house background for home scenes.",
+    "tags": ["house", "home", "residence", "building"]
+  },
+  {
+    "id": "school",
+    "name": "School",
+    "type": "building",
+    "category": "location",
+    "image_path": "assets/buildings/school.png",
+    "description": "School campus background for daytime learning scenes.",
+    "tags": ["school", "classroom", "education", "building"]
+  },
+  {
+    "id": "tree",
+    "name": "Tree",
+    "type": "object",
+    "category": "nature",
+    "image_path": "assets/objects/tree.png",
+    "description": "Tree asset used in outdoor backgrounds and park scenes.",
+    "tags": ["tree", "nature", "park", "outdoor"]
+  },
+  {
+    "id": "street",
+    "name": "Street",
+    "type": "background",
+    "category": "location",
+    "image_path": "assets/backgrounds/street.png",
+    "description": "Street scene with road and sidewalk details.",
+    "tags": ["street", "road", "city", "outside"]
+  }
+]

@@ -1,0 +1,44 @@
+{
+  "name": "ai-cartoon-story-generator",
+  "version": "1.0.0",
+  "description": "Story-to-cartoon scene generator using existing assets and optional Gemini AI",
+  "main": "cartoon-story-generator.js",
+  "bin": {
+    "ai-cartoon": "./cartoon-story-generator.js"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint src",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/lib/ai/generate-cartoon.test.ts",
+    "generate": "node cartoon-story-generator.js",
+    "demo": "node cartoon-story-generator.js --story \"A boy goes to the park with his dog. He meets his friend there. They play football together and then go home in a red car.\" --output demo-output.json"
+  },
+  "keywords": [
+    "cartoon",
+    "ai",
+    "story",
+    "konva",
+    "assets"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@google/genai": "^2.27.0",
+    "konva": "^10.7.1",
+    "next": "^16.3.8",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "react-konva": "^19.3.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^26.6.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.3.8",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3"
+  }
+}
