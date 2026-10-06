@@ -26,11 +26,14 @@ export interface CartoonElement {
   x: number;
   y: number;
   scale: number;
+  flipX?: boolean;
 }
 
 export interface CartoonDialogue {
   speaker: string;
   text: string;
+  x?: number;
+  y?: number;
 }
 
 export interface CartoonScene {
@@ -41,6 +44,9 @@ export interface CartoonScene {
 }
 
 export interface GeneratedCartoon {
+  id?: string;
   title: string;
+  originalStory?: string;
+  totalScenes?: number;
   scenes: CartoonScene[];
 }

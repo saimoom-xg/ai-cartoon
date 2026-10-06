@@ -5,6 +5,8 @@ import {
   StoryProviderRequestError,
   StoryProviderResponseError,
 } from "@/lib/ai/generate-cartoon";
+import { generateDeterministicCartoon } from "@/lib/ai/deterministic-generator";
+import { saveCartoon } from "@/lib/storage/cartoons";
 
 export const runtime = "nodejs";
 
@@ -22,7 +24,7 @@ export async function POST(request: Request) {
     typeof body !== "object" ||
     body === null ||
     !("story" in body) ||
-    typeof body.story !== "string"
+    typeof (body as Record<string, unknown>).story !== "string"
   ) {
     return NextResponse.json(
       { error: 'Request body must include a "story" string.' },
@@ -30,7 +32,8 @@ export async function POST(request: Request) {
     );
   }
 
-  const story = body.story.trim();
+  const payload = body as { story: string; mode?: "ai" | "deterministic" };
+  const story = payload.story.trim();
   if (!story) {
     return NextResponse.json({ error: "Please enter a story." }, { status: 400 });
   }
@@ -42,34 +45,48 @@ export async function POST(request: Request) {
     );
   }
 
+  if (payload.mode === "deterministic") {
+    const cartoon = generateDeterministicCartoon(story);
+    const saved = saveCartoon(cartoon);
+    return NextResponse.json(saved);
+  }
+
   try {
     const cartoon = await generateCartoonFromStory(story);
-    return NextResponse.json(cartoon);
+    const saved = saveCartoon({ ...cartoon, originalStory: story });
+    return NextResponse.json(saved);
   } catch (error) {
-    if (error instanceof StoryProviderConfigurationError) {
+    console.warn("AI generation failed; falling back to deterministic scene generator:", error);
+    try {
+      const fallbackCartoon = generateDeterministicCartoon(story);
+      const saved = saveCartoon({ ...fallbackCartoon, originalStory: story });
+      return NextResponse.json(saved);
+    } catch {
+      if (error instanceof StoryProviderConfigurationError) {
+        return NextResponse.json(
+          {
+            error:
+              "Story generation is not configured. Set GEMINI_API_KEY or OPENROUTER_API_KEY on the server.",
+          },
+          { status: 503 },
+        );
+      }
+
+      if (
+        error instanceof StoryProviderResponseError ||
+        error instanceof StoryProviderRequestError
+      ) {
+        return NextResponse.json(
+          { error: "AI providers could not generate valid scene data. Please try again." },
+          { status: 502 },
+        );
+      }
+
+      console.error("Unexpected cartoon generation failure.");
       return NextResponse.json(
-        {
-          error:
-            "Story generation is not configured. Set GEMINI_API_KEY or OPENROUTER_API_KEY on the server.",
-        },
-        { status: 503 },
+        { error: "An unexpected error prevented story generation." },
+        { status: 500 },
       );
     }
-
-    if (
-      error instanceof StoryProviderResponseError ||
-      error instanceof StoryProviderRequestError
-    ) {
-      return NextResponse.json(
-        { error: "AI providers could not generate valid scene data. Please try again." },
-        { status: 502 },
-      );
-    }
-
-    console.error("Unexpected cartoon generation failure.");
-    return NextResponse.json(
-      { error: "An unexpected error prevented story generation." },
-      { status: 500 },
-    );
   }
 }

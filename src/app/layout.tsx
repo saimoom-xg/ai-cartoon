@@ -13,6 +13,23 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined' && (!window.crypto || !window.crypto.randomUUID)) {
+                window.crypto = window.crypto || {};
+                window.crypto.randomUUID = function() {
+                  return '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, function(c) {
+                    var r = (window.crypto.getRandomValues ? window.crypto.getRandomValues(new Uint8Array(1))[0] : Math.floor(Math.random() * 256));
+                    return (+c ^ (r & 15 >> +c / 4)).toString(16);
+                  });
+                };
+              }
+            `,
+          }}
+        />
+      </head>
       <body>{children}</body>
     </html>
   );
