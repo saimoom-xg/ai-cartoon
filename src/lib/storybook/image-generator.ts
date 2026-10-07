@@ -4,6 +4,10 @@ import { randomUUID } from "node:crypto";
 import { GoogleGenAI } from "@google/genai";
 import { put } from "@vercel/blob";
 import type { GeneratedImageSize } from "../types/storybook.ts";
+import {
+  imageGenerationRequestFailure,
+  imageGenerationResponseFailure,
+} from "./image-errors.ts";
 import { isTrustedBlobUrl } from "./storage-url.ts";
 
 const MAX_REFERENCE_IMAGE_BYTES = 12 * 1024 * 1024;
@@ -91,7 +95,7 @@ export async function generateAndStoreImage(
 
   const ai = geminiClient();
   const imageParts = await Promise.all(references.map(loadReferenceImage));
-  let interaction;
+  let interaction: Awaited<ReturnType<typeof ai.interactions.create>>;
   try {
     interaction = await ai.interactions.create({
       model: process.env.GEMINI_IMAGE_MODEL || "gemini-nano-banana-2.1",
@@ -107,16 +111,21 @@ export async function generateAndStoreImage(
         image_config: { aspect_ratio: "16:9", image_size: imageSize },
       },
     });
-  } catch {
-    throw new ImageGenerationRequestError(
-      "The image model could not generate this illustration. Please retry.",
-    );
+  } catch (error) {
+    const status =
+      typeof error === "object" && error !== null && "status" in error
+        ? error.status
+        : undefined;
+    console.error("Gemini image-generation request failed.", {
+      status: typeof status === "number" ? status : undefined,
+    });
+    throw new ImageGenerationRequestError(imageGenerationRequestFailure(error));
   }
 
   const image = interaction.output_image;
   if (!image?.data || !image.mime_type || !ALLOWED_IMAGE_TYPES.has(image.mime_type)) {
     throw new ImageGenerationResponseError(
-      "The image model returned no supported image. Please retry.",
+      imageGenerationResponseFailure(interaction.errors),
     );
   }
 

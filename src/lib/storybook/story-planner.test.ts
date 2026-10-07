@@ -1,8 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { Type, type Schema } from "@google/genai";
 import {
   buildStoryPlanPrompt,
   planStory,
+  requestOpenRouterStoryPlan,
+  requestStoryPlanWithFallback,
+  StoryPlannerRequestError,
   StoryPlannerResponseError,
   validateStoryPlan,
 } from "./story-planner.ts";
@@ -11,6 +15,7 @@ import { isTrustedBlobUrl } from "./storage-url.ts";
 import type { StoryPlan, StoryStyle } from "../types/storybook.ts";
 
 const style: StoryStyle = "Watercolor";
+const schema: Schema = { type: Type.OBJECT, properties: {} };
 const plan: StoryPlan = {
   title: "Maya and Pip",
   genre: "fantasy adventure",
@@ -63,6 +68,69 @@ const plan: StoryPlan = {
     },
   ],
 };
+
+test("falls back to OpenRouter when Gemini story planning fails", async () => {
+  const originalGeminiKey = process.env.GEMINI_API_KEY;
+  const originalOpenRouterKey = process.env.OPENROUTER_API_KEY;
+  process.env.GEMINI_API_KEY = "test-gemini-key";
+  process.env.OPENROUTER_API_KEY = "test-openrouter-key";
+
+  try {
+    const result = await requestStoryPlanWithFallback("test prompt", schema, {
+      gemini: async () => {
+        throw new StoryPlannerRequestError("Gemini rejected the API key.");
+      },
+      openRouter: async () => JSON.stringify(plan),
+    });
+    assert.equal(result, JSON.stringify(plan));
+  } finally {
+    if (originalGeminiKey === undefined) delete process.env.GEMINI_API_KEY;
+    else process.env.GEMINI_API_KEY = originalGeminiKey;
+    if (originalOpenRouterKey === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = originalOpenRouterKey;
+  }
+});
+
+test("sends OpenRouter a schema-guided JSON story-planning request", async () => {
+  const originalApiKey = process.env.OPENROUTER_API_KEY;
+  const originalModel = process.env.OPENROUTER_MODEL;
+  const originalFetch = globalThis.fetch;
+  process.env.OPENROUTER_API_KEY = "unit-test-token";
+  process.env.OPENROUTER_MODEL = "test/provider-model";
+  let requestUrl = "";
+  let requestInit: RequestInit | undefined;
+  globalThis.fetch = async (input, init) => {
+    requestUrl = String(input);
+    requestInit = init;
+    return new Response(
+      JSON.stringify({ choices: [{ message: { content: JSON.stringify(plan) } }] }),
+      { status: 200, headers: { "Content-Type": "application/json" } },
+    );
+  };
+
+  try {
+    const result = await requestOpenRouterStoryPlan("test prompt", schema);
+    const headers = new Headers(requestInit?.headers);
+    const body = JSON.parse(String(requestInit?.body)) as {
+      model: string;
+      messages: Array<{ content: string }>;
+      response_format: { type: string };
+    };
+
+    assert.equal(result, JSON.stringify(plan));
+    assert.equal(requestUrl, "https://openrouter.ai/api/v1/chat/completions");
+    assert.equal(headers.get("Authorization"), "Bearer unit-test-token");
+    assert.equal(body.model, "test/provider-model");
+    assert.deepEqual(body.response_format, { type: "json_object" });
+    assert.match(body.messages[0].content, /JSON Schema/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalApiKey === undefined) delete process.env.OPENROUTER_API_KEY;
+    else process.env.OPENROUTER_API_KEY = originalApiKey;
+    if (originalModel === undefined) delete process.env.OPENROUTER_MODEL;
+    else process.env.OPENROUTER_MODEL = originalModel;
+  }
+});
 
 test("plans a story with schema-validated character and scene details", async () => {
   let receivedPrompt = "";

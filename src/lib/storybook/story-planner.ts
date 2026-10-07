@@ -16,6 +16,31 @@ export class StoryPlannerResponseError extends Error {}
 
 export type StoryPlannerGenerator = (prompt: string, schema: Schema) => Promise<string>;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function httpStatus(error: unknown): number | undefined {
+  if (!isRecord(error)) return undefined;
+  const status = error.status ?? error.httpStatus;
+  return typeof status === "number" ? status : undefined;
+}
+
+function providerFailure(provider: string, status?: number): StoryPlannerRequestError {
+  if (status === 401 || status === 403) {
+    return new StoryPlannerRequestError(
+      `${provider} rejected the API key or the key does not have access to the configured model.`,
+    );
+  }
+  if (status === 429) {
+    return new StoryPlannerRequestError(`${provider} quota or rate limit was exceeded.`);
+  }
+  if (status !== undefined) {
+    return new StoryPlannerRequestError(`${provider} returned an error (HTTP ${status}).`);
+  }
+  return new StoryPlannerRequestError(`Could not reach ${provider}. Check server network access and retry.`);
+}
+
 function storyPlanSchema(): Schema {
   const string = { type: Type.STRING };
   return {
@@ -168,10 +193,6 @@ function storyPlanSchema(): Schema {
       "scenes",
     ],
   };
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 function text(value: unknown, field: string, maxLength: number): string {
@@ -368,15 +389,112 @@ async function requestGeminiStoryPlan(prompt: string, schema: Schema): Promise<s
     ) {
       throw error;
     }
-    throw new StoryPlannerRequestError("Gemini could not analyze the story. Please retry.");
+    throw providerFailure("Gemini", httpStatus(error));
   }
+}
+
+export async function requestOpenRouterStoryPlan(prompt: string, schema: Schema): Promise<string> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new StoryPlannerConfigurationError("Set OPENROUTER_API_KEY on the server.");
+
+  let response: Response;
+  try {
+    response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        ...(process.env.OPENROUTER_SITE_URL
+          ? { "HTTP-Referer": process.env.OPENROUTER_SITE_URL }
+          : {}),
+        ...(process.env.OPENROUTER_APP_NAME
+          ? { "X-Title": process.env.OPENROUTER_APP_NAME }
+          : {}),
+      },
+      body: JSON.stringify({
+        model: process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content: `Return only valid JSON matching this JSON Schema:\n${JSON.stringify(schema)}`,
+          },
+          { role: "user", content: prompt },
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.35,
+        max_tokens: 10000,
+      }),
+    });
+  } catch {
+    throw providerFailure("OpenRouter");
+  }
+
+  if (!response.ok) throw providerFailure("OpenRouter", response.status);
+
+  let payload: unknown;
+  try {
+    payload = await response.json();
+  } catch {
+    throw new StoryPlannerResponseError("OpenRouter returned an invalid response.");
+  }
+  if (
+    !isRecord(payload) ||
+    !Array.isArray(payload.choices) ||
+    !isRecord(payload.choices[0]) ||
+    !isRecord(payload.choices[0].message) ||
+    typeof payload.choices[0].message.content !== "string" ||
+    payload.choices[0].message.content.length === 0
+  ) {
+    throw new StoryPlannerResponseError("OpenRouter returned an empty story plan.");
+  }
+  return payload.choices[0].message.content;
+}
+
+export async function requestStoryPlanWithFallback(
+  prompt: string,
+  schema: Schema,
+  generators: Partial<Record<"gemini" | "openRouter", StoryPlannerGenerator>> = {},
+): Promise<string> {
+  const providers: Array<{ name: string; generate: StoryPlannerGenerator }> = [];
+  if (process.env.GEMINI_API_KEY || generators.gemini) {
+    providers.push({ name: "Gemini", generate: generators.gemini ?? requestGeminiStoryPlan });
+  }
+  if (process.env.OPENROUTER_API_KEY || generators.openRouter) {
+    providers.push({
+      name: "OpenRouter",
+      generate: generators.openRouter ?? requestOpenRouterStoryPlan,
+    });
+  }
+  if (providers.length === 0) {
+    throw new StoryPlannerConfigurationError(
+      "Set GEMINI_API_KEY or OPENROUTER_API_KEY on the server.",
+    );
+  }
+
+  const failures: string[] = [];
+  for (const [index, provider] of providers.entries()) {
+    try {
+      return await provider.generate(prompt, schema);
+    } catch (error) {
+      if (error instanceof StoryPlannerResponseError) throw error;
+      const message =
+        error instanceof StoryPlannerRequestError
+          ? error.message
+          : `${provider.name} could not analyze the story.`;
+      failures.push(message);
+      if (index < providers.length - 1) {
+        console.warn(`${provider.name} story planning failed; trying the next configured provider.`);
+      }
+    }
+  }
+  throw new StoryPlannerRequestError(failures.join(" "));
 }
 
 export async function planStory(
   story: string,
   style: StoryStyle,
   sceneCount: number | "auto",
-  generator: StoryPlannerGenerator = requestGeminiStoryPlan,
+  generator: StoryPlannerGenerator = requestStoryPlanWithFallback,
 ): Promise<StoryPlan> {
   const prompt = buildStoryPlanPrompt(story, style, sceneCount);
   let responseText: string;
@@ -390,7 +508,7 @@ export async function planStory(
     ) {
       throw error;
     }
-    throw new StoryPlannerRequestError("Gemini could not analyze the story. Please retry.");
+    throw new StoryPlannerRequestError("The configured AI providers could not analyze the story. Please retry.");
   }
   let parsed: unknown;
   try {

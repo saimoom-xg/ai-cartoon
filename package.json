@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint src",
-    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/lib/ai/generate-cartoon.test.ts src/lib/storybook/story-planner.test.ts cartoon-story-generator.test.js",
+    "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --experimental-strip-types --test src/lib/ai/generate-cartoon.test.ts src/lib/storybook/story-planner.test.ts src/lib/storybook/image-errors.test.ts cartoon-story-generator.test.js",
     "generate": "node cartoon-story-generator.js",
     "demo": "node cartoon-story-generator.js --story \"A boy goes to the park with his dog. He meets his friend there. They play football together and then go home in a red car.\" --output demo-output.json"
   },

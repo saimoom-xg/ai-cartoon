@@ -1,10 +1,10 @@
 # AI Cartoon Storybook Creator
 
-Turn a written story into an illustrated children's storybook. Gemini plans meaningful scenes and a character bible, then generates original scene illustrations using the configured Gemini image model. Generated images are stored in Vercel Blob.
+Turn a written story into an illustrated children's storybook. Gemini plans meaningful scenes and a character bible, with OpenRouter available as a text-planning fallback, then Gemini generates original scene illustrations. Generated images are stored in Vercel Blob.
 
 ## Key Features
 
-- **AI Story Planner**: Gemini structured JSON output creates a character bible and 1–10 chronological story beats.
+- **AI Story Planner**: Gemini structured JSON output creates a character bible and 1–10 chronological story beats; OpenRouter can be configured as a fallback text provider.
 - **Original AI Illustrations**: Nano Banana 2.1 generates a character reference sheet, scene images, and an optional dedicated cover.
 - **Consistent Storybook**: Character descriptions and reference imagery guide image generation; each scene can be retried or edited independently.
 - **Natural-Language Scene Editing**: Ask Gemini to change a generated scene while preserving its cast and style.
@@ -36,9 +36,10 @@ cp .env.local.example .env.local
 
 Set:
 - `GEMINI_API_KEY`: Google Gemini API key with text and image generation enabled.
+- `OPENROUTER_API_KEY` (optional): Fallback API key for story analysis if Gemini is unavailable. `OPENROUTER_MODEL` can override the default fallback text model (`openai/gpt-4o-mini`).
 - `BLOB_READ_WRITE_TOKEN`: Vercel Blob read/write token. Configure the same token in Vercel project environment variables for deployment.
 
-The default image model is `gemini-nano-banana-2.1`. Override it with the server-only `GEMINI_IMAGE_MODEL` variable when changing models. The default text planner uses `gemini-2.5-flash`, configurable with `GEMINI_TEXT_MODEL`. Fast, standard, and high-quality image sizes are 1K, 2K, and 4K respectively; high-quality generations can cost more.
+The default image model is `gemini-nano-banana-2.1`. Override it with the server-only `GEMINI_IMAGE_MODEL` variable when changing models. The default text planner uses `gemini-2.5-flash`, configurable with `GEMINI_TEXT_MODEL`. If both text providers are configured, Gemini is tried first and OpenRouter is used if the Gemini request fails. Fast, standard, and high-quality image sizes are 1K, 2K, and 4K respectively; high-quality generations can cost more.
 
 Image-generation errors are shown to the user instead of silently falling back to the legacy asset generator. Generated images are public Vercel Blob URLs; story plans remain in the browser session and are not backed by a database yet.
 
