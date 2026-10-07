@@ -9,6 +9,7 @@ import {
   StoryProviderRequestError,
   StoryProviderResponseError,
 } from "./generate-cartoon.ts";
+import { generateDeterministicCartoon } from "./deterministic-generator.ts";
 import type { GeneratedCartoon } from "../types/cartoon.ts";
 
 function scene(
@@ -97,7 +98,45 @@ test("prompt restricts analysis to the provided asset library", () => {
   assert.match(prompt, /Do not generate, describe, or request images/);
   assert.match(prompt, /Never invent, rename, or alter an asset ID/);
   assert.match(prompt, /Reuse the same asset ID/);
+  assert.match(prompt, /top-left corner/);
+  assert.match(prompt, /Never turn narration into speech-bubble text/);
   assert.match(prompt, /"id": "park"/);
+});
+
+test("deterministic fallback separates events and keeps the recurring cast", () => {
+  const cartoon = generateDeterministicCartoon(
+    "A boy goes to the park with his dog. He meets his friend there. They play football together and then go home in a red car.",
+  );
+
+  assert.equal(cartoon.scenes.length, 4);
+  assert.deepEqual(
+    cartoon.scenes.map((item) => item.elements.filter((element) => element.type === "character").map((element) => element.asset)),
+    [["boy"], ["boy", "friend"], ["boy", "friend"], ["boy", "friend"]],
+  );
+  assert.deepEqual(
+    cartoon.scenes.map((item) => item.background),
+    ["park", "park", "park", "house"],
+  );
+  assert.ok(cartoon.scenes.every((item) => item.dialogue.length === 0));
+  assert.equal(
+    cartoon.scenes[2].elements.find((element) => element.asset === "football")?.action,
+    "playing",
+  );
+  assert.equal(
+    cartoon.scenes[3].elements.find((element) => element.asset === "red-car")?.action,
+    "driving",
+  );
+  assert.ok(
+    cartoon.scenes.flatMap((item) => item.elements).every((element) => element.x >= 0 && element.x <= 1000 && element.y >= 0 && element.y <= 600),
+  );
+});
+
+test("deterministic fallback uses only explicit quoted dialogue", () => {
+  const cartoon = generateDeterministicCartoon('A girl says, "Let us explore!"');
+
+  assert.deepEqual(cartoon.scenes[0].dialogue, [
+    { speaker: "Girl", text: "Let us explore!", x: 160, y: 70 },
+  ]);
 });
 
 test("rejects malformed JSON and unknown asset IDs", async () => {

@@ -1,36 +1,23 @@
-# AI Cartoon Story Generator
+# AI Cartoon Storybook Creator
 
-A complete MVP for turning written stories into illustrated cartoon scenes using a predefined asset library, AI story understanding (Gemini / OpenRouter), and an interactive **Konva.js** visual editor.
+Turn a written story into an illustrated children's storybook. Gemini plans meaningful scenes and a character bible, then generates original scene illustrations using the configured Gemini image model. Generated images are stored in Vercel Blob.
 
 ## Key Features
 
-- **Story-to-Cartoon Pipeline**: Write any story and turn it into 3–6 consistent cartoon scenes.
-- **AI Understanding & Asset Selection**: Google Gemini & OpenRouter integration analyzes stories, identifies characters, animals, vehicles, scenery, actions, and dialogue, and selects corresponding assets from the predefined library.
-- **Resilient Fallback**: Automatic failover from Gemini to OpenRouter, plus a deterministic rule-based generator for offline or zero-configuration use.
-- **Predefined Transparent Assets**: 13 ready-to-use cartoon PNG assets (`characters`, `animals`, `vehicles`, `objects`, `backgrounds`, `buildings`) under `public/assets/`.
-- **Interactive Konva Canvas Editor**:
+- **AI Story Planner**: Gemini structured JSON output creates a character bible and 1–10 chronological story beats.
+- **Original AI Illustrations**: Nano Banana 2.1 generates a character reference sheet, scene images, and an optional dedicated cover.
+- **Consistent Storybook**: Character descriptions and reference imagery guide image generation; each scene can be retried or edited independently.
+- **Natural-Language Scene Editing**: Ask Gemini to change a generated scene while preserving its cast and style.
+- **Storybook Viewer**: View scenes as they finish, follow generation progress, and review failed scenes without losing completed work.
+- **Exporting**:
+  - Download individual scene PNGs or all generated images as a ZIP.
+  - Print or save the storybook as a PDF.
+  - Generate a dedicated cover illustration.
+- **Classic Konva Asset Editor** (optional at `/classic`):
   - Drag and drop characters, animals, and objects anywhere on the canvas.
   - Scale (resize), flip horizontal (direction facing), and adjust layer order (Z-index).
-  - Add and replace assets (Section 10) from the visual asset library picker.
   - Comic speech bubbles with speaker labels and editable dialogue.
-- **Scene Management**:
-  - Visual scene filmstrip with thumbnail previews.
-  - Add scene, duplicate scene, delete scene, and reorder scenes.
-  - **Regenerate Scene** (Section 9): Regenerate an individual scene without re-running the entire story.
-- **Presentation Mode**: Fullscreen cartoon slideshow player with autoplay and scene captions.
-- **Exporting** (Section 12):
-  - **PNG Image**: High-resolution export of any scene.
-  - **Print / PDF Storybook**: Multi-panel printable comic book layout.
-  - **JSON**: Structured scene coordinates and metadata.
-- **REST API Endpoints** (Section 13):
-  - `POST /api/cartoon/generate` — Generate scenes from story
-  - `GET /api/assets` — List asset library metadata
-  - `POST /api/cartoon/regenerate-scene` — Regenerate a single scene
-  - `GET /api/cartoon/:id` — Retrieve saved cartoon
-  - `PUT /api/cartoon/:id` — Update cartoon data
-  - `POST /api/cartoon/:id/scene` — Add scene to cartoon
-  - `PUT /api/cartoon/:id/scene/:scene` — Update specific scene
-  - `DELETE /api/cartoon/:id/scene/:scene` — Delete specific scene
+- **Server-Side API**: Gemini credentials remain on the server. Story analysis, reference generation, scene generation, and editing use separate validated routes.
 
 ---
 
@@ -41,23 +28,34 @@ A complete MVP for turning written stories into illustrated cartoon scenes using
 npm install
 ```
 
-### 2. Configure Environment (Optional)
+### 2. Configure Environment
 Copy `.env.local.example` to `.env.local`:
 ```bash
 cp .env.local.example .env.local
 ```
 
-Set your keys:
-- `GEMINI_API_KEY`: Google Gemini API key
-- `OPENROUTER_API_KEY`: OpenRouter API key (optional fallback)
+Set:
+- `GEMINI_API_KEY`: Google Gemini API key with text and image generation enabled.
+- `BLOB_READ_WRITE_TOKEN`: Vercel Blob read/write token. Configure the same token in Vercel project environment variables for deployment.
 
-*Note: If no API keys are configured, the system automatically uses the deterministic cartoon generator so you can test all features offline without an API key.*
+The default image model is `gemini-nano-banana-2.1`. Override it with the server-only `GEMINI_IMAGE_MODEL` variable when changing models. The default text planner uses `gemini-2.5-flash`, configurable with `GEMINI_TEXT_MODEL`. Fast, standard, and high-quality image sizes are 1K, 2K, and 4K respectively; high-quality generations can cost more.
+
+Image-generation errors are shown to the user instead of silently falling back to the legacy asset generator. Generated images are public Vercel Blob URLs; story plans remain in the browser session and are not backed by a database yet.
+
+Before making generation endpoints publicly available, put a distributed rate limiter in front of `/api/story/analyze`, `/api/generate/*`, and `/api/edit/scene`. This MVP does not yet include account-based quotas or distributed rate limiting.
 
 ### 3. Run Development Server
 ```bash
 npm run dev
 ```
-Open [http://localhost:3000](http://localhost:3000) to create cartoons!
+Open [http://localhost:3000](http://localhost:3000) to create storybooks. Visit `/classic` to use the retained asset-based Konva editor.
+
+### Storybook API
+
+- `POST /api/story/analyze` — Return a validated story plan and character bible.
+- `POST /api/generate/character` — Generate and store the character reference sheet.
+- `POST /api/generate/scene` — Generate a scene illustration, retry a scene, or create a cover.
+- `POST /api/edit/scene` — Apply a natural-language edit to one generated scene.
 
 ### 4. Run Tests & Build
 ```bash
@@ -68,7 +66,7 @@ npm run build
 
 ---
 
-## Asset Library Structure
+## Classic Asset Library
 
 Assets are defined in `assets/asset-library.json` and served from `public/assets/`:
 - `characters/`: `boy.png`, `girl.png`, `friend.png`, `old-man.png`
@@ -78,7 +76,7 @@ Assets are defined in `assets/asset-library.json` and served from `public/assets
 - `backgrounds/`: `park.png`, `street.png`
 - `buildings/`: `house.png`, `school.png`
 
-Assets can be replaced or added at any time by placing corresponding transparent PNGs in `public/assets/` and updating `assets/asset-library.json`.
+These assets remain available to the optional classic editor and legacy CLI; they are not used by the image-first storybook generator.
 
 ---
 
@@ -90,3 +88,5 @@ npm run demo
 # or
 node cartoon-story-generator.js --story "A boy walks his dog in the park."
 ```
+
+The offline CLI separates clear story events into chronological scenes, keeps the lead character consistent, and only creates speech bubbles for quoted dialogue.

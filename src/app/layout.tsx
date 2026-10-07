@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "AI Cartoon Story Generator",
-  description: "Turn your story into a cartoon using your existing assets.",
+  title: "AI Cartoon Storybook Creator",
+  description: "Turn your story into an illustrated children's storybook with consistent AI-generated characters.",
 };
 
 export default function RootLayout({
